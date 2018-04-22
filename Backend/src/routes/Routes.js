@@ -2,6 +2,7 @@ import express from "express";
 import { Database } from "../Database";
 import { TokenGenerator } from "../TokenGenerator";
 import { options } from "../models/Response";
+import { checkState } from "../helpers/StateChecker";
 
 let router = express.Router();
 const db = new Database();
@@ -82,20 +83,44 @@ router.post("/games/do_step", (req, res) => {
     res.header("Content-Type", 'application/json');
     
     let optionsStep = options;
+    let name = TokenGenerator.decodeToken(req.headers.accesstoken);
 
-    db.setGameCell(req.headers.gametoken, req.body.row, req.body.col, (err, doc) => {
+    if(name !== "") {
+        optionsStep.status = "error";
+        optionsStep.code = "404";
+    }
+
+    db.setGameCell(req.headers.gametoken, req.body.row, req.body.col, name, (err, doc) => {
         if (err) {
             console.log(err);
         } 
+        res.send(options);
     });
 
-    console.log(TokenGenerator.decodeToken(req.headers.accesstoken));
-
-    res.send(options);
 });
 
 router.get("/games/state", (req, res) => {
+    res.header("Content-Type", 'application/json');
+        
+    let optionsState = options;
 
+    db.getGameData(req.headers.gametoken, (err, game) => {
+        if (err) {
+            optionsState.status = "error";
+            optionsState.code = "404";
+        } else {
+            optionsState.status = "ok";
+            optionsState.code = "0";
+        }
+        game.forEach(element => {
+            optionsState.gameDuration = element.gameDuration;
+            optionsState.field = element.field;
+            if (element.winner !== "") {
+                optionsState.winner = element.winner;
+            }
+            res.send(optionsState);
+        });
+    });
 });
 
 export default router;
