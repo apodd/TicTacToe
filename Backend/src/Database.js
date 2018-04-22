@@ -9,13 +9,13 @@ export class Database {
         this.gameModel = this.mongoose.model("Game", gameSchema);
     }
 
-    createGame(userName, gToken) {
+    createGame(userName, gToken, callback) {
         let model = new this.gameModel({ 
             size: "3",
             gameToken: gToken,
             owner: userName,
             opponent: "",
-            gameDuration: "",
+            gameDuration: "0",
             gameResult: "",
             state: "ready",
             turn: false,
@@ -26,7 +26,13 @@ export class Database {
             ]
         });
 
-        model.save();
+        model.save((err) => {
+            if (err) {
+                callback(err, null);
+            } else {
+                callback(null, model);
+            }
+        });
     }
 
     getGameData(token, callback) {
@@ -59,21 +65,31 @@ export class Database {
         });
     }
 
-    setGameCell(id, x, y) {
-        this.gameModel.findById(id, (err, doc) => {
+    setGameCell(token, x, y, callback) {
+        this.gameModel.findOne({gameToken : token}, (err, doc) => {
             if(err) {
-                console.log(err);
+                callback(err, null);
             } else {
                 let field = doc.field;
                 field[x - 1] = setCharAt(field[x - 1], y - 1, "x");
-                doc.set({ field: field });
+                this.gameModel.update({field: field}, (err, raw) => {
+                    if (err) {
+                        callback(err, null);
+                    } else {
+                        console.log(doc);
+                    }
+                });
                 doc.save((err) => {
-                    if (err) return handleError(err);
+                    if (err) {
+                        callback(err, null);
+                    }
                 });
                 console.log(doc);
             }
         });
     }
-}
 
-/**/
+    getGameState() {
+
+    }
+}

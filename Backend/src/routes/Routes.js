@@ -1,6 +1,7 @@
 import express from "express";
 import { Database } from "../Database";
 import { TokenGenerator } from "../TokenGenerator";
+import { options } from "../models/Response";
 
 let router = express.Router();
 const db = new Database();
@@ -8,24 +9,25 @@ const db = new Database();
 
 router.post("/games/join", (req, res) => {
     res.header("Content-Type", 'application/json');
-
+    
     let accessToken = TokenGenerator.createToken(req.body.userName);
-
-    let options = {
-        "status": "ok",
-        "code": "0",
-        "accessToken": accessToken    
-    }
-
+    
+    let optionsJoin = options;
+    optionsJoin.accessToken = accessToken;
+    
     db.getGameData(req.body.gameToken, (err, game) => {
         if (err) {
-            console.log(err);
-        } 
+            optionsJoin.status = "error";
+            optionsJoin.code = "404";
+        } else {
+            optionsJoin.status = "ok";
+            optionsJoin.code = "0";
+        }
         game.forEach(element => {
-            if (element.opponent === "") {
+            if (element.opponent === "" || req.body.userName !== "") {
                 db.setOpponentName(req.body.gameToken, req.body.userName);
             }
-            res.send(options);
+            res.send(optionsJoin);
         });
     });
 });
@@ -36,59 +38,60 @@ router.post("/games/new", (req, res) => {
     let accessToken = TokenGenerator.createToken(req.body.userName);
     let gameToken = TokenGenerator.createToken();
 
-    db.createGame(req.body.userName, gameToken);
+    let optionsNew = options;
+    optionsNew.accessToken = accessToken;
+    optionsNew.gameToken = gameToken;
 
-    let options = {
-        "status": "ok",
-        "code": "0",
-        "accessToken": accessToken,
-        "gameToken": gameToken
-    }
+    db.createGame(req.body.userName, gameToken, (err) => {
+        if (err) {
+            optionsNew.status = "error";
+            optionsNew.code = "404";
+        } else {
+            optionsNew.status = "ok";
+            optionsNew.code = "0";
+        }
 
-    res.send(options);
+        res.send(optionsNew);
+    });
 });
 
 router.get("/games/list", (req, res) => {
     res.header("Content-Type", 'application/json');
 
-    let options = {
-        "status": "ok",
-        "code": "0",
-        "games" : []
-    }
+    let optionsList = options;
+    optionsList.games = [];
 
     db.getGamesList((err, game) => {
         if (err) {
-            console.log(err);
-        } 
+            optionsList.status = "error";
+            optionsList.code = "404";
+        } else {
+            optionsList.status = "ok";
+            optionsList.code = "0";
+        }
+
         game.forEach(element => {
-            options.games.push(element);
+            optionsList.games.push(element);
         });
-        res.send(options);
+        
+        res.send(optionsList);
     });
 });
 
 router.post("/games/do_step", (req, res) => {
     res.header("Content-Type", 'application/json');
+    
+    let optionsStep = options;
 
-    let options = {
-        "status": "ok",
-        "code": "0"
-    }
-
-    db.getGameData(req.headers.gametoken, (err, game) => {
+    db.setGameCell(req.headers.gametoken, req.body.row, req.body.col, (err, doc) => {
         if (err) {
             console.log(err);
         } 
-        game.forEach(element => {
-            console.log(element._id);
-            db.setGameCell(element._id, req.body.row, req.body.col);
-            res.send(options);
-        });
     });
 
     console.log(TokenGenerator.decodeToken(req.headers.accesstoken));
 
+    res.send(options);
 });
 
 router.get("/games/state", (req, res) => {
