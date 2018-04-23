@@ -1,11 +1,11 @@
 import mongoose from "mongoose";
 
 const gameSchema = new mongoose.Schema({
-    size: { type: String, required: true},
+    size: String,
     gameToken: String,
-    owner: { type: String, required: true},
+    owner: String,
     opponent: String,
-    gameDuration: String,
+    gameDuration: Number,
     gameResult: String,
     state: String,
     turn: Boolean,
@@ -15,14 +15,5 @@ const gameSchema = new mongoose.Schema({
         String
     ]
 });
-
-class GameClass {
-    get getToken() {
-        return this.gameToken;
-        //return "${this.gameToken}";
-    }
-}
-
-gameSchema.loadClass(GameClass);
 
 export default gameSchema;

@@ -8,9 +8,13 @@ export class Database {
         this.mongoose = mongoose;
         this.mongoose.connect("mongodb://localhost:27017/tictactoedb");
         this.gameModel = this.mongoose.model("Game", gameSchema);
+        this.timer = 0;
+        this.lastTime = 0;
     }
 
     createGame(userName, gToken, callback) {
+        this.timer = new Date().getTime();
+
         let model = new this.gameModel({ 
             size: "3",
             gameToken: gToken,
@@ -53,6 +57,11 @@ export class Database {
                 err = "Can't find by token";
                 callback(err, null);
             } else {
+                this.gameModel.update({state: "playing"}, (err, raw) => {
+                    if (err) {
+                        callback(err, null);
+                    }
+                });
                 callback(null, doc);
             }
         });
@@ -70,6 +79,7 @@ export class Database {
     }
 
     setGameCell(token, x, y, name, callback) {
+        this.lastTime = new Date().getTime();
         this.gameModel.findOne({gameToken : token}, (err, doc) => {
             let ch = "";
             
@@ -136,10 +146,27 @@ export class Database {
     }
 
     getGameState(token, callback) {
+        let end = new Date().getTime();
+        
         this.gameModel.find({gameToken : token}, (err, game) =>  {
+            if(end - this.lastTime > 300000) {
+                this.gameModel.update({state: "done"}, (err, raw) => {
+                    if (err) {
+                        err = "Can't update state";
+                        callback(err, null);
+                    }
+                });
+            }
+
             if (err) {
                 callback(err, null);
             } else {
+                this.gameModel.update({gameDuration: end - this.timer}, (err, raw) => {
+                    if (err) {
+                        err = "Can't update game duration";
+                        callback(err, null);
+                    }
+                });
                 callback(null, game);
             }
         });

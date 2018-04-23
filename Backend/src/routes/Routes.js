@@ -20,9 +20,11 @@ router.post("/games/join", (req, res) => {
             if (err) {
                 optionsJoin.status = "error";
                 optionsJoin.code = "404";
+                optionsList.message = err;
             } else {
                 optionsJoin.status = "ok";
                 optionsJoin.code = "0";
+                optionsList.message = "ok";
             }
             game.forEach(element => {
                 if (element.opponent === "" || req.body.userName !== "") {
@@ -62,6 +64,7 @@ router.post("/games/new", (req, res) => {
         } else {
             optionsNew.status = "ok";
             optionsNew.code = "0";
+            optionsList.message = "ok";
         }
 
         res.send(optionsNew);
@@ -82,6 +85,7 @@ router.get("/games/list", (req, res) => {
         } else {
             optionsList.status = "ok";
             optionsList.code = "0";
+            optionsList.message = "ok";
         }
 
         game.forEach(element => {
@@ -98,16 +102,30 @@ router.post("/games/do_step", (req, res) => {
     let optionsStep = Object.assign({}, options);
     let data = TokenGenerator.decodeGameToken(req.headers.accesstoken);
 
-    db.setGameCell(data.gameToken, req.body.row, req.body.col, data.userName, (err, doc) => {
-        if (err) {
-            console.log(err);
-        } else if(data.username !== "") {
-            optionsStep.status = "error";
-            optionsStep.code = "404";
-        }
+    if (data !== undefined) {
+        
+        db.setGameCell(data.gameToken, req.body.row, req.body.col, data.userName, (err, doc) => {
+            if (err) {
+                optionsStep.code = "111";
+                optionsStep.code = "404";
+                optionsStep.message = err;
+            } else if(data.username === "") {
+                optionsStep.status = "error";
+                optionsStep.code = "404";
+                optionsStep.message = "Bad username";
+            } else {
+                optionsStep.status = "ok";
+                optionsStep.code = "0";
+                optionsStep.message = "ok";
+            }
+            res.send(optionsStep);
+        });
+    } else {
+        optionsStep.status = "error";
+        optionsStep.code = "404";
+        optionsStep.message = "Can't decode token";
         res.send(optionsStep);
-    });
-
+    }
 });
 
 router.get("/games/state", (req, res) => {
@@ -117,7 +135,7 @@ router.get("/games/state", (req, res) => {
     let data = TokenGenerator.decodeGameToken(req.headers.accesstoken);
 
     if(data !== undefined) {
-        db.getGameData(data.gameToken, (err, game) => {
+        db.getGameState(data.gameToken, (err, game) => {
             if (err) {
                 optionsState.status = "error";
                 optionsState.code = "404";
@@ -125,6 +143,7 @@ router.get("/games/state", (req, res) => {
                 optionsState.status = "ok";
                 optionsState.code = "0";
             }
+
             game.forEach(element => {
                 optionsState.gameDuration = element.gameDuration;
                 optionsState.field = element.field;

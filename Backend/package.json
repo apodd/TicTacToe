@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "build": "npx babel src --out-dir build --presets=es2015",
-    "run": "node build/app.js"
+    "app": "node build/app.js",
+    "server": "C:\\mongodb\\bin\\mongod.exe"
   },
   "author": "",
   "license": "ISC",
@@ -13,11 +14,12 @@
     "body-parser": "^1.18.2",
     "express": "^4.16.3",
     "jsonwebtoken": "^8.2.1",
-    "mongoose": "^5.0.14"
+    "mongoose": "^5.0.16"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",
     "babel-core": "^6.26.0",
-    "babel-preset-es2015": "^6.24.1"
+    "babel-preset-es2015": "^6.24.1",
+    "grunt": "^1.0.2"
   }
 }
