@@ -78,7 +78,6 @@ export class Database {
                 callback(err, null);
             }
 
-            let winner = checkState(doc.field, x - 1, y - 1);
             
             if(err) {
                 callback(err, null);
@@ -86,11 +85,15 @@ export class Database {
                 callback(err, null);
             } else if (doc.state === "done") {
                 callback(err, null);
-            } else if (getCharAt(doc.field[x - 1], y - 1) === "x" || getCharAt(doc.field[x - 1], y - 1) === "o"){
+            } else if (doc.field[x - 1].charAt(y - 1) === "x" || doc.field[x - 1].charAt(y - 1) === "o"){
                 callback(err, null);
             } else {
                 let field = doc.field;
                 field[x - 1] = setCharAt(field[x - 1], y - 1, ch);
+
+                let winner = checkState(field);
+                console.log(winner);
+
                 this.gameModel.update({field: field}, (err, raw) => {
                     if (err) {
                         callback(err, null);
