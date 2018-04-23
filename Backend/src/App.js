@@ -11,5 +11,5 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use('/', router);
 
 app.listen(config.port, function () {
-    console.log('Example app listening on port 8001!')
+    console.log('App listening on port 8001!')
 });

@@ -1,4 +1,4 @@
-export let options = {
+export const options = {
     "status": "",
     "code": "",
     "message": ""
