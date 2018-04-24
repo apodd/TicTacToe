@@ -3,6 +3,7 @@ import { Database } from "../Database";
 import { TokenGenerator } from "../TokenGenerator";
 import { options } from "../models/Response";
 import { checkState } from "../helpers/StateChecker";
+import { setOptions } from "../helpers/StringHelper";
 
 let router = express.Router();
 const db = new Database();
@@ -18,19 +19,15 @@ router.post("/games/join", (req, res) => {
 
         db.getGameData(req.body.gameToken, (err, game) => {
             if (err) {
-                optionsJoin.status = "error";
-                optionsJoin.code = "404";
-                optionsList.message = err;
+                setOptions(optionsJoin, "error", err.code, err.message);
             } else {
-                optionsJoin.status = "ok";
-                optionsJoin.code = "0";
-                optionsList.message = "ok";
+                setOptions(optionsJoin, "ok", "0", "ok");
             }
             game.forEach(element => {
                 if (element.opponent === "" || req.body.userName !== "") {
                     db.setOpponentName(req.body.gameToken, req.body.userName, (err, doc) => {
                         if (err) {
-                            optionsJoin.message = err;
+                            optionsJoin.message = err.getMessage();
                         }
                     });
                 }
@@ -38,9 +35,7 @@ router.post("/games/join", (req, res) => {
             });
         });
     } else {
-        optionsJoin.status = "error";
-        optionsJoin.code = "404";
-        optionsJoin.message = "Can't decode token";
+        setOptions(optionsJoin, "error", "404", "Can't decode token");
         res.send(optionsJoin);
     }
     
@@ -58,13 +53,9 @@ router.post("/games/new", (req, res) => {
 
     db.createGame(req.body.userName, gameToken, (err) => {
         if (err) {
-            optionsNew.status = "error";
-            optionsNew.code = "100";
-            optionsNew.message = err;
+            setOptions(optionsNew, "error", err.code, err.message);
         } else {
-            optionsNew.status = "ok";
-            optionsNew.code = "0";
-            optionsList.message = "ok";
+            setOptions(optionsNew, "ok", "0", "ok");
         }
 
         res.send(optionsNew);
@@ -79,13 +70,9 @@ router.get("/games/list", (req, res) => {
 
     db.getGamesList((err, game) => {
         if (err) {
-            optionsList.status = "error";
-            optionsList.code = "404";
-            optionsList.message = err;
+            setOptions(optionsList, "error", err.code, err.message);
         } else {
-            optionsList.status = "ok";
-            optionsList.code = "0";
-            optionsList.message = "ok";
+            setOptions(optionsList, "ok", "0", "ok");
         }
 
         game.forEach(element => {
@@ -106,24 +93,16 @@ router.post("/games/do_step", (req, res) => {
         
         db.setGameCell(data.gameToken, req.body.row, req.body.col, data.userName, (err, doc) => {
             if (err) {
-                optionsStep.code = "111";
-                optionsStep.code = "404";
-                optionsStep.message = err;
+                setOptions(optionsStep, "error", err.code, err.message);
             } else if(data.username === "") {
-                optionsStep.status = "error";
-                optionsStep.code = "404";
-                optionsStep.message = "Bad username";
+                setOptions(optionsStep, "error", "404", "Bad username");
             } else {
-                optionsStep.status = "ok";
-                optionsStep.code = "0";
-                optionsStep.message = "ok";
+                setOptions(optionsStep, "ok", "0", "ok");
             }
             res.send(optionsStep);
         });
     } else {
-        optionsStep.status = "error";
-        optionsStep.code = "404";
-        optionsStep.message = "Can't decode token";
+        setOptions(optionsStep, "error", "404", "Can't decode token");
         res.send(optionsStep);
     }
 });
@@ -137,11 +116,9 @@ router.get("/games/state", (req, res) => {
     if(data !== undefined) {
         db.getGameState(data.gameToken, (err, game) => {
             if (err) {
-                optionsState.status = "error";
-                optionsState.code = "404";
+                setOptions(optionsState, "error", err.code, err.message);
             } else {
-                optionsState.status = "ok";
-                optionsState.code = "0";
+                setOptions(optionsState, "ok", "0", "ok");
             }
 
             game.forEach(element => {
@@ -154,10 +131,8 @@ router.get("/games/state", (req, res) => {
             });
         });
     } else {
-        optionsJoin.status = "error";
-        optionsJoin.code = "404";
-        optionsJoin.message = "Can't decode token";
-        res.send(optionsJoin);
+        setOptions(optionsState, "error", "404", "Can't decode token");
+        res.send(optionsState);
     }
     
 });

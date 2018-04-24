@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import gameSchema from "./models/Game";
 import { setCharAt, getCharAt } from "./helpers/StringHelper";
 import { checkState } from "./helpers/StateChecker";
+import { MyError } from "./Error";
 
 export class Database {
     constructor() {
@@ -33,8 +34,7 @@ export class Database {
 
         model.save((err) => {
             if (err) {
-                err = "can't save model in db";
-                callback(err, null);
+                callback(new MyError("Can't save model in db", "200"), null);
             } else {
                 callback(null, model);
             }
@@ -54,8 +54,7 @@ export class Database {
     setOpponentName(token, opponentName, callback) {
         this.gameModel.findOneAndUpdate({gameToken : token}, {$set:{opponent: opponentName}}, {new: true}, (err, doc) => {
             if(err) {
-                err = "Can't find by token";
-                callback(err, null);
+                callback(new MyError("Can't find by token", "404"), null);
             } else {
                 this.gameModel.update({state: "playing"}, (err, raw) => {
                     if (err) {
@@ -70,8 +69,7 @@ export class Database {
     getGamesList(callback) {
         this.gameModel.find({}, (err, game) =>  {
             if (err) {
-                err = "Can't get game list";
-                callback(err, null);
+                callback(new MyError("Can't find by token", "404"), null);
             } else {
                 callback(null, game);
             }
@@ -82,28 +80,26 @@ export class Database {
         this.lastTime = new Date().getTime();
         this.gameModel.findOne({gameToken : token}, (err, doc) => {
             let ch = "";
+            let myErr;
             
             if (doc === null) {
-                err = "Can't find data";
+                myErr = new MyError("Can't find data", "100");
             } else if (name === doc.owner && doc.turn === true) {
                 ch = "x";
             } else if (name === doc.opponent && doc.turn === false) {
                 ch = "o";
             } else {
-                err = "It's not your turn";
+                myErr = new MyError("It's not your turn", "100");
             }
             
-            if(err) {
-                callback(err, null);
+            if(myErr) {
+                callback(myErr, null);
             } else if (doc.size < x || doc.size < y) {
-                err = "X or Y coordinates are more then field size";
-                callback(err, null);
+                callback(new MyError("X or Y coordinates are more then field size", "101"), null);
             } else if (doc.state === "done") {
-                err = "Game already finished";
-                callback(err, null);
+                callback(new MyError("Game already finished", "102"), null);
             } else if (doc.field[x - 1].charAt(y - 1) === "x" || doc.field[x - 1].charAt(y - 1) === "o"){
-                err = "Cell already marked";
-                callback(err, null);
+                callback(new MyError("Cell already marked", "103"), null);
             } else {
                 let turn;
                 let field = doc.field;
@@ -117,7 +113,7 @@ export class Database {
 
                 this.gameModel.update({turn: turn}, (err, raw) => {
                     if (err) {
-                        callback(err, null);
+                        callback(new MyError("Can't find by token", "404"), null);
                     }
                 });
 
@@ -125,19 +121,19 @@ export class Database {
                 if (winner !== "") {
                     this.gameModel.update({gameResult: winner}, (err, raw) => {
                         if (err) {
-                            callback(err, null);
+                            callback(new MyError("Can't find by token", "404"), null);
                         }
                     });
                     this.gameModel.update({state: "done"}, (err, raw) => {
                         if (err) {
-                            callback(err, null);
+                            callback(new MyError("Can't find by token", "404"), null);
                         }
                     });
                 }
 
                 this.gameModel.update({field: field}, (err, raw) => {
                     if (err) {
-                        callback(err, null);
+                        callback(new MyError("Can't find by token", "404"), null);
                     }
                 });
                 callback(null, doc);
@@ -152,8 +148,7 @@ export class Database {
             if(end - this.lastTime > 300000) {
                 this.gameModel.update({state: "done"}, (err, raw) => {
                     if (err) {
-                        err = "Can't update state";
-                        callback(err, null);
+                        callback(new MyError("Can't find by token", "404"), null);
                     }
                 });
             }
@@ -163,8 +158,7 @@ export class Database {
             } else {
                 this.gameModel.update({gameDuration: end - this.timer}, (err, raw) => {
                     if (err) {
-                        err = "Can't update game duration";
-                        callback(err, null);
+                        callback(new MyError("Can't find by token", "404"), null);
                     }
                 });
                 callback(null, game);
