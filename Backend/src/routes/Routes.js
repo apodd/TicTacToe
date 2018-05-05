@@ -4,6 +4,7 @@ import { TokenGenerator } from "../TokenGenerator";
 import { options } from "../models/Response";
 import { checkState } from "../helpers/StateChecker";
 import { setOptions } from "../helpers/StringHelper";
+import { PlayerType } from "../models/PlayerType";
 
 let router = express.Router();
 const db = new Database();
@@ -14,8 +15,7 @@ router.post("/games/join", (req, res) => {
     let optionsJoin = Object.assign({}, options);
     
     if(TokenGenerator.decodeGameToken(req.body.gameToken) !== undefined) {
-        let accessToken = TokenGenerator.createAccessToken(req.body.userName, req.body.gameToken);
-        optionsJoin.accessToken = accessToken;
+        let accessToken;
 
         db.getGameData(req.body.gameToken, (err, game) => {
             if (err) {
@@ -24,7 +24,8 @@ router.post("/games/join", (req, res) => {
                 setOptions(optionsJoin, "ok", "0", "ok");
             }
             game.forEach(element => {
-                if (element.opponent === "" || req.body.userName !== "") {
+                if(element.opponent === "" && req.body.userName !== "") {
+                    accessToken = TokenGenerator.createAccessToken(req.body.userName, req.body.gameToken, PlayerType.OPPONENT);
                     db.setOpponentName(req.body.gameToken, req.body.userName, (err, doc) => {
                         if (err) {
                             setOptions(optionsJoin, "error", err.code, err.message);
@@ -38,11 +39,13 @@ router.post("/games/join", (req, res) => {
                             });
                         }
                     });
-                    res.send(optionsJoin);
+                } else if (req.body.userName !== ""){
+                    accessToken = TokenGenerator.createAccessToken(req.body.userName, req.body.gameToken, PlayerType.VIEWER);
                 } else {
                     setOptions(optionsNew, "error", "202", "Empty username");
-                    res.send(optionsJoin);
                 }
+                optionsJoin.accessToken = accessToken;
+                res.send(optionsJoin);
             });
         });
     } else {
@@ -56,7 +59,7 @@ router.post("/games/new", (req, res) => {
     res.header("Content-Type", 'application/json');
 
     let gameToken = TokenGenerator.createGameToken();
-    let accessToken = TokenGenerator.createAccessToken(req.body.userName, gameToken);
+    let accessToken = TokenGenerator.createAccessToken(req.body.userName, gameToken, PlayerType.OWNER);
 
     let optionsNew = Object.assign({}, options);
     if (req.body.userName === ""){
@@ -104,16 +107,21 @@ router.post("/games/do_step", (req, res) => {
     let data = TokenGenerator.decodeGameToken(req.headers.accesstoken);
 
     if (data !== undefined) {
-        db.setGameCell(data.gameToken, req.body.row, req.body.col, data.userName, (err, doc) => {
-            if (err) {
-                setOptions(optionsStep, "error", err.code, err.message);
-            } else if (data.username === "") {
-                setOptions(optionsStep, "error", "404", "Bad username");
-            } else {
-                setOptions(optionsStep, "ok", "0", "ok");
-            }
+        if (data.playerType === PlayerType.OWNER || data.playerType === PlayerType.OPPONENT) {
+            db.setGameCell(data.gameToken, req.body.row, req.body.col, data.userName, (err, doc) => {
+                if (err) {
+                    setOptions(optionsStep, "error", err.code, err.message);
+                } else if (data.username === "") {
+                    setOptions(optionsStep, "error", "404", "Bad username");
+                } else {
+                    setOptions(optionsStep, "ok", "0", "ok");
+                }
+                res.send(optionsStep);
+            });
+        } else {
+            setOptions(optionsStep, "error", "304", "You can't do steps. You're viewer");
             res.send(optionsStep);
-        });
+        }
     } else {
         setOptions(optionsStep, "error", "404", "Can't decode token");
         res.send(optionsStep);

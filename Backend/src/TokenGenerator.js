@@ -6,8 +6,8 @@ export class TokenGenerator {
         return jwt.sign({userName: name}, config.secret); 
     }
 
-	static createAccessToken(name, token) {
-        return jwt.sign({userName: name, gameToken: token}, config.secret); 
+	static createAccessToken(name, token, playerType) {
+        return jwt.sign({userName: name, gameToken: token, playerType: playerType}, config.secret); 
 	}
 	
     static decodeToken(token) {
